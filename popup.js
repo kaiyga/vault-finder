@@ -9,12 +9,9 @@ async function init() {
     browser.runtime.openOptionsPage();
   });
   
-  // Кнопки открытия/закрытия формы создания
-  document.getElementById('open-create').addEventListener('click', showCreateForm);
   document.getElementById('cancel-create').addEventListener('click', hideCreateForm);
-  document.getElementById('add-kv-row').addEventListener('click', addKvRow);
+  document.getElementById('add-kv-row').addEventListener('click', () => addKvRow());
   document.getElementById('save-secret').addEventListener('click', saveSecret);
-
   document.getElementById('search').addEventListener('input', renderList);
 
   vaultConfig = await browser.storage.local.get(['vault_url', 'username', 'password', 'kv_engine', 'secret_path']);
@@ -60,7 +57,7 @@ async function loadSecrets() {
     if (!isAuth) return;
   }
 
-  showMessage('Загрузка списка секретов...', 'neutral');
+  showMessage('Загрузка списка...', 'neutral');
   
   const dirPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
   const url = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/metadata/${dirPath}?list=true`;
@@ -78,7 +75,6 @@ async function loadSecrets() {
     }
 
     if (res.status === 404) {
-      // Если директория не найдена (например, пустая) — это не критичная ошибка
       allSecrets = [];
       renderList();
       showMessage(`Директория пуста.`, 'neutral');
@@ -113,25 +109,34 @@ function renderList() {
     const nameSpan = document.createElement('span');
     nameSpan.className = 'secret-name';
     nameSpan.textContent = secret;
+    nameSpan.onclick = () => toggleSecretData(secret, keysDiv);
+
+    // Группа кнопок
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'secret-actions';
     
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Изменить';
+    editBtn.onclick = () => editSecret(secret);
+
     const copyAllBtn = document.createElement('button');
-    copyAllBtn.textContent = 'Копировать секрет';
+    copyAllBtn.textContent = 'Копировать';
     copyAllBtn.onclick = () => copyFullSecret(secret, copyAllBtn);
+
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(copyAllBtn);
 
     const keysDiv = document.createElement('div');
     keysDiv.className = 'keys-container';
 
-    nameSpan.onclick = () => toggleSecretData(secret, keysDiv);
-
     headerDiv.appendChild(nameSpan);
-    headerDiv.appendChild(copyAllBtn);
+    headerDiv.appendChild(actionsDiv);
     
     itemDiv.appendChild(headerDiv);
     itemDiv.appendChild(keysDiv);
     listEl.appendChild(itemDiv);
   });
 
-  // Добавляем кнопку создания секрета в самый конец списка
   const bottomCreateBtn = document.createElement('button');
   bottomCreateBtn.className = 'btn-create-bottom';
   bottomCreateBtn.textContent = '+ Создать новый секрет';
@@ -147,7 +152,6 @@ async function toggleSecretData(secretKey, keysDiv) {
   }
 
   keysDiv.style.display = 'block';
-  
   if (keysDiv.innerHTML !== '') return;
 
   keysDiv.innerHTML = '<span class="neutral">Загрузка ключей...</span>';
@@ -178,7 +182,6 @@ async function toggleSecretData(secretKey, keysDiv) {
       const keyItem = document.createElement('div');
       keyItem.className = 'key-item';
       
-      // Имя ключа (кликабельное, копирует само имя ключа)
       const keyName = document.createElement('span');
       keyName.className = 'key-name';
       keyName.textContent = k;
@@ -190,7 +193,6 @@ async function toggleSecretData(secretKey, keysDiv) {
         setTimeout(() => { keyName.textContent = originalText; }, 1000);
       };
 
-      // Кнопка копирования значения ключа
       const copyBtn = document.createElement('button');
       copyBtn.textContent = 'Копировать';
       copyBtn.title = "Скопировать значение";
@@ -230,24 +232,66 @@ async function copyFullSecret(secretKey, btnElement) {
     
     const originalText = btnElement.textContent;
     btnElement.textContent = 'Скопировано';
-    setTimeout(() => {
-      btnElement.textContent = originalText;
-    }, 1000);
+    setTimeout(() => { btnElement.textContent = originalText; }, 1000);
 
   } catch (err) {
     showMessage(err.message, 'error');
   }
 }
 
-// === Логика формы создания секрета ===
+// === Логика формы (Создание и Редактирование) ===
 
 function showCreateForm() {
   document.getElementById('main-view').style.display = 'none';
   document.getElementById('create-view').style.display = 'block';
-  document.getElementById('new-secret-name').value = '';
+  
+  const nameInput = document.getElementById('new-secret-name');
+  nameInput.value = '';
+  nameInput.readOnly = false; // Разрешаем ввод имени
+  
   document.getElementById('kv-rows').innerHTML = '';
   showMessage('Заполните данные нового секрета', 'neutral', 'create-message');
-  addKvRow(); // Добавляем одну пустую строку по умолчанию
+  addKvRow();
+}
+
+async function editSecret(secretKey) {
+  showMessage('Загрузка данных для редактирования...', 'neutral');
+  
+  const dirPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
+  const url = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/data/${dirPath}${secretKey}`;
+  
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'X-Vault-Token': vaultToken }
+    });
+    
+    if (!res.ok) throw new Error(`Ошибка загрузки: ${res.status}`);
+    
+    const data = await res.json();
+    const secretData = data.data.data;
+    
+    document.getElementById('main-view').style.display = 'none';
+    document.getElementById('create-view').style.display = 'block';
+    
+    const nameInput = document.getElementById('new-secret-name');
+    nameInput.value = secretKey;
+    nameInput.readOnly = true; // Запрещаем менять имя существующего секрета
+    
+    document.getElementById('kv-rows').innerHTML = '';
+    showMessage(`Редактирование секрета: ${secretKey}`, 'neutral', 'create-message');
+
+    const keys = Object.keys(secretData);
+    if (keys.length === 0) {
+      addKvRow();
+    } else {
+      keys.forEach(k => addKvRow(k, secretData[k]));
+    }
+    
+    showMessage('', 'neutral');
+  } catch (err) {
+    showMessage(err.message, 'error');
+  }
 }
 
 function hideCreateForm() {
@@ -255,18 +299,33 @@ function hideCreateForm() {
   document.getElementById('main-view').style.display = 'block';
 }
 
-function addKvRow() {
+function addKvRow(key = '', val = '') {
   const container = document.getElementById('kv-rows');
   const row = document.createElement('div');
   row.className = 'kv-row';
   
-  row.innerHTML = `
-    <input type="text" placeholder="Ключ" class="new-key">
-    <input type="text" placeholder="Значение" class="new-val">
-    <button class="btn-remove-row" title="Удалить">X</button>
-  `;
+  const keyInput = document.createElement('input');
+  keyInput.type = 'text';
+  keyInput.placeholder = 'Ключ';
+  keyInput.className = 'new-key';
+  keyInput.value = key;
+
+  const valInput = document.createElement('input');
+  valInput.type = 'text';
+  valInput.placeholder = 'Значение';
+  valInput.className = 'new-val';
+  valInput.value = val;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn-remove-row';
+  removeBtn.title = 'Удалить строку';
+  removeBtn.textContent = 'X';
+  removeBtn.onclick = () => row.remove();
+
+  row.appendChild(keyInput);
+  row.appendChild(valInput);
+  row.appendChild(removeBtn);
   
-  row.querySelector('.btn-remove-row').onclick = () => row.remove();
   container.appendChild(row);
 }
 
@@ -310,17 +369,17 @@ async function saveSecret() {
 
     if (!res.ok) throw new Error(`Ошибка сохранения: HTTP ${res.status}`);
 
-    // Добавляем новый секрет в локальный массив, если его там еще нет
     if (!allSecrets.includes(secretName)) {
       allSecrets.push(secretName);
-      allSecrets.sort(); // Сортируем по алфавиту для красоты
+      allSecrets.sort();
     }
     
     hideCreateForm();
-    renderList(); // Перерисует список, добавит новый элемент и кнопку в конец
-    showMessage(`Секрет ${secretName} создан.`, 'success');
+    renderList();
+    showMessage(`Секрет ${secretName} сохранен.`, 'success');
 
   } catch (err) {
     showMessage(err.message, 'error', 'create-message');
   }
 }
+
