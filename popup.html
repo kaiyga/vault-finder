@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <style>
@@ -15,7 +15,6 @@
     button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #444; padding: 4px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
     button:hover { background: #3a3a3a; }
     
-    /* Списки секретов */
     .secret-item { padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
     .secret-header { display: flex; justify-content: space-between; align-items: center; }
     .secret-name { cursor: pointer; color: #88ccff; text-decoration: underline; word-break: break-all; margin-right: 10px; flex-grow: 1; }
@@ -26,7 +25,6 @@
     .key-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px dashed #333; }
     .key-item:last-child { border-bottom: none; }
     
-    /* Кликабельное имя ключа */
     .key-name { color: #ccc; word-break: break-all; margin-right: 10px; font-size: 11px; cursor: pointer; }
     .key-name:hover { color: #fff; text-decoration: underline; }
 
@@ -35,7 +33,6 @@
     .success { color: #55ff55; }
     .neutral { color: #aaaaaa; }
 
-    /* Форма создания / редактирования */
     #create-view { display: none; }
     .kv-row { display: flex; gap: 5px; margin-bottom: 5px; }
     .kv-row input { margin-bottom: 0; }
@@ -52,29 +49,32 @@
   <div class="header">
     <span>Vault Finder</span>
     <div class="header-buttons">
-      <button id="open-settings">Настройки</button>
+      <button id="open-settings">Settings</button>
     </div>
   </div>
   
   <div id="main-view">
-    <input type="text" id="search" placeholder="Поиск секрета...">
+    <input type="text" id="search" placeholder="Search secret...">
     <div id="message" class="neutral"></div>
     <div id="secrets-list"></div>
   </div>
 
   <div id="create-view">
-    <div id="create-message" class="neutral">Заполните данные секрета</div>
-    <input type="text" id="new-secret-name" placeholder="Имя секрета (напр: my_app)">
+    <div id="create-message" class="neutral">Fill in secret payload details</div>
+    <input type="text" id="new-secret-name" placeholder="Secret name (e.g. my_app)">
     
     <div id="kv-rows"></div>
     
-    <button id="add-kv-row" style="width: 100%; margin-top: 5px;">+ Добавить ключ</button>
+    <button id="add-kv-row" style="width: 100%; margin-top: 5px;">+ Add Key Pair</button>
     
     <div class="btn-action-group">
-      <button id="cancel-create">Отмена</button>
-      <button id="save-secret" class="btn-success">Сохранить</button>
+      <button id="cancel-create">Cancel</button>
+      <button id="save-secret" class="btn-success">Save</button>
     </div>
   </div>
+
+  <!-- Dynamic runtime CSS injection target block for popup interface -->
+  <style id="dynamic-custom-style"></style>
 
   <script src="popup.js"></script>
 </body>

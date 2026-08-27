@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Vault Secrets Finder",
   "version": "1.0",
-  "description": "Поиск и копирование секретов из Hashicorp Vault.",
+  "description": "Search and manage secrets from HashiCorp Vault",
   "permissions": [
     "storage",
     "clipboardWrite"
@@ -20,8 +20,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "vault-finder@yourdomain.com"
+      "id": "vault-finder@local.dev"
     }
   }
 }
-

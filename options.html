@@ -1,44 +1,50 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Настройки Vault</title>
-  <style>
-    body { background: #121212; color: #e0e0e0; font-family: monospace; padding: 20px; max-width: 400px; margin: 0 auto; }
-    h2 { font-size: 16px; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 0; }
-    label { display: block; margin-top: 15px; font-size: 12px; color: #aaa; }
-    input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; background: #1e1e1e; border: 1px solid #333; color: #e0e0e0; font-family: inherit; }
-    input:focus { outline: none; border-color: #555; }
-    button { margin-top: 20px; padding: 8px 15px; cursor: pointer; background: #2a2a2a; color: #e0e0e0; border: 1px solid #444; font-family: inherit; width: 100%; }
-    button:hover { background: #3a3a3a; }
-    #status { margin-top: 15px; font-size: 12px; min-height: 14px; white-space: pre-wrap; word-wrap: break-word; }
-    .success { color: #55ff55; }
-    .error { color: #ff5555; }
-    .neutral { color: #aaaaaa; }
-  </style>
+  <title>Vault Configuration</title>
+  <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <h2>Конфигурация Vault</h2>
-  
-  <label>Vault URL (без слеша на конце)</label>
-  <input type="text" id="vault_url" placeholder="http://127.0.0.1:8200">
+  <div class="settings-wrapper">
+    <h2>Vault Configuration</h2>
+    
+    <label for="vault_url">Vault URL (trailing slash omitted)</label>
+    <input type="text" id="vault_url" placeholder="http://127.0.0.1:8200">
 
-  <label>Username (UserPass)</label>
-  <input type="text" id="username">
+    <label for="username">Username (UserPass)</label>
+    <input type="text" id="username">
 
-  <label>Password</label>
-  <input type="password" id="password">
+    <label for="password">Password</label>
+    <input type="password" id="password">
 
-  <label>KV Engine (например: kv)</label>
-  <input type="text" id="kv_engine" value="kv">
+    <label for="kv_engine">KV Engine (e.g. kv)</label>
+    <input type="text" id="kv_engine" value="kv">
 
-  <label>Директория (например: users/kaiyga)</label>
-  <input type="text" id="secret_path" placeholder="users/kaiyga">
+    <label for="secret_path">Directory (e.g. users/kaiyga)</label>
+    <input type="text" id="secret_path" placeholder="users/kaiyga">
 
-  <button id="save">Сохранить и проверить</button>
-  <div id="status"></div>
+    <button id="save">Save and Test Connection</button>
+    <div id="status"></div>
+
+    <div class="divider"></div>
+
+    <!-- Toggle button for the custom CSS editor block -->
+    <button id="toggle-editor-btn" class="btn-secondary">Open CSS Editor</button>
+
+    <!-- Hidden collapsible CSS editor container -->
+    <div id="css-editor-wrapper" class="hidden">
+      <label for="custom-css-editor">Custom Appearance Styles (CSS):</label>
+      <textarea id="custom-css-editor" placeholder="/* Inject your custom CSS rules here */"></textarea>
+      <div class="editor-actions">
+        <button id="apply-css-btn" class="btn-secondary">Apply Styles</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dynamic injection container for user-defined styles -->
+  <style id="dynamic-custom-style"></style>
 
   <script src="options.js"></script>
 </body>
 </html>
-
