@@ -10,14 +10,17 @@
     
     input { width: 100%; padding: 6px; box-sizing: border-box; background: #1e1e1e; border: 1px solid #333; color: #e0e0e0; margin-bottom: 10px; font-family: inherit; }
     input:focus { outline: none; border-color: #555; }
+    input:read-only { background: #111; color: #777; border-color: #222; }
+    
     button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #444; padding: 4px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
     button:hover { background: #3a3a3a; }
     
     /* Списки секретов */
     .secret-item { padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
     .secret-header { display: flex; justify-content: space-between; align-items: center; }
-    .secret-name { cursor: pointer; color: #88ccff; text-decoration: underline; word-break: break-all; margin-right: 10px; }
+    .secret-name { cursor: pointer; color: #88ccff; text-decoration: underline; word-break: break-all; margin-right: 10px; flex-grow: 1; }
     .secret-name:hover { color: #bbddff; }
+    .secret-actions { display: flex; gap: 4px; }
     
     .keys-container { margin-top: 8px; margin-left: 10px; padding-left: 10px; border-left: 1px solid #444; display: none; }
     .key-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px dashed #333; }
@@ -32,7 +35,7 @@
     .success { color: #55ff55; }
     .neutral { color: #aaaaaa; }
 
-    /* Форма создания */
+    /* Форма создания / редактирования */
     #create-view { display: none; }
     .kv-row { display: flex; gap: 5px; margin-bottom: 5px; }
     .kv-row input { margin-bottom: 0; }
@@ -49,21 +52,18 @@
   <div class="header">
     <span>Vault Finder</span>
     <div class="header-buttons">
-      <button id="open-create">Создать</button>
       <button id="open-settings">Настройки</button>
     </div>
   </div>
   
-  <!-- Основной интерфейс поиска -->
   <div id="main-view">
     <input type="text" id="search" placeholder="Поиск секрета...">
     <div id="message" class="neutral"></div>
     <div id="secrets-list"></div>
   </div>
 
-  <!-- Интерфейс создания секрета -->
   <div id="create-view">
-    <div id="create-message" class="neutral">Заполните данные нового секрета</div>
+    <div id="create-message" class="neutral">Заполните данные секрета</div>
     <input type="text" id="new-secret-name" placeholder="Имя секрета (напр: my_app)">
     
     <div id="kv-rows"></div>
@@ -72,10 +72,11 @@
     
     <div class="btn-action-group">
       <button id="cancel-create">Отмена</button>
-      <button id="save-secret" class="btn-success">Сохранить в Vault</button>
+      <button id="save-secret" class="btn-success">Сохранить</button>
     </div>
   </div>
 
   <script src="popup.js"></script>
 </body>
 </html>
+
