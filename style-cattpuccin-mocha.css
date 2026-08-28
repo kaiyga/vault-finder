@@ -1,0 +1,61 @@
+/**
+ * Catppuccin Mocha (Blue Accent) Theme Example
+ * Paste this snippet into the Custom Appearance Styles editor.
+ */
+
+:root {
+  /* Base & Surfaces */
+  --vault-bg-base: #1e1e2e;            /* Base */
+  --vault-bg-surface: #181825;         /* Mantle */
+  --vault-bg-input-readonly: #11111b;  /* Crust */
+
+  /* Text & Typography */
+  --vault-text-primary: #cdd6f4;       /* Text */
+  --vault-text-secondary: #a6adc8;     /* Subtext0 */
+  --vault-text-readonly: #6c7086;      /* Overlay0 */
+  --vault-text-link: #89b4fa;          /* Blue */
+  --vault-text-link-hover: #b4befe;    /* Lavender */
+
+  /* Borders & Dividers */
+  --vault-border-color: #313244;       /* Surface0 */
+  --vault-border-focus: #89b4fa;       /* Blue */
+  --vault-border-light: #45475a;       /* Surface1 */
+  --vault-border-dashed: #585b70;      /* Surface2 */
+
+  /* Standard Buttons */
+  --vault-btn-bg: #313244;            /* Surface0 */
+  --vault-btn-hover: #45475a;         /* Surface1 */
+  --vault-btn-border: #45475a;        /* Surface1 */
+
+  /* Secondary Buttons */
+  --vault-btn-sec-bg: #181825;        /* Mantle */
+  --vault-btn-sec-border: #313244;    /* Surface0 */
+
+  /* Success Action Buttons (e.g., Save) */
+  --vault-btn-success-bg: #89b4fa;     /* Accent Blue */
+  --vault-btn-success-hover: #b4befe;  /* Lavender Accent Hover */
+  --vault-btn-success-border: #89b4fa; /* Accent Blue */
+
+  /* Danger Buttons (e.g., Delete/Remove) */
+  --vault-btn-danger-bg: #f38ba8;      /* Red */
+  --vault-btn-danger-hover: #eba0ac;   /* Flamingo */
+  --vault-btn-danger-border: #f38ba8;  /* Red */
+
+  /* Status Indicators */
+  --vault-status-success: #a6e3a1;     /* Green */
+  --vault-status-error: #f38ba8;       /* Red */
+  --vault-status-neutral: #9399b2;     /* Overlay2 */
+
+  /* Layout Customizations */
+  --vault-radius: 6px;
+}
+
+/* Extra polishing touches for Catppuccin aesthetic */
+button.btn-success {
+  color: #11111b; /* Dark crust text on primary accent buttons for contrast */
+  font-weight: bold;
+}
+
+button.btn-danger {
+  color: #11111b;
+}
