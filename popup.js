@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 /**
  * Initializes DOM element event handlers, loads stored connection configurations,
- * and executes initial remote secret index discovery.
+ * populates the directory selector, and executes initial remote secret index discovery.
  */
 async function init() {
   document.getElementById('open-settings').addEventListener('click', () => {
@@ -23,13 +23,21 @@ async function init() {
   document.getElementById('save-secret').addEventListener('click', saveSecret);
   document.getElementById('search').addEventListener('input', renderList);
 
+  const directorySelector = document.getElementById('directory-selector');
+  if (directorySelector) {
+    directorySelector.addEventListener('change', () => {
+      allSecrets = [];
+      renderList();
+      loadSecrets();
+    });
+  }
+
   // Retrieve user settings and custom CSS overrides simultaneously
   vaultConfig = await browser.storage.local.get([
     'vault_url',
     'username',
     'password',
-    'kv_engine',
-    'secret_path',
+    'directories',
     'custom_css_payload'
   ]);
   
@@ -37,12 +45,41 @@ async function init() {
     document.getElementById('dynamic-custom-style').textContent = vaultConfig.custom_css_payload;
   }
   
-  if (!vaultConfig.vault_url || !vaultConfig.username || !vaultConfig.password || !vaultConfig.kv_engine) {
-    showMessage('Missing connection configuration. Please open settings.', 'error');
+  if (!vaultConfig.vault_url || !vaultConfig.username || !vaultConfig.password || !vaultConfig.directories || vaultConfig.directories.length === 0) {
+    showMessage('Missing connection configuration or directories. Please open settings.', 'error');
     return;
   }
 
+  populateDirectorySelector();
   await loadSecrets();
+}
+
+/**
+ * Fills the directory selection dropdown with stored directory configurations.
+ */
+function populateDirectorySelector() {
+  const selector = document.getElementById('directory-selector');
+  if (!selector) return;
+
+  selector.innerHTML = '';
+  
+  vaultConfig.directories.forEach((directory, index) => {
+    const optionElement = document.createElement('option');
+    optionElement.value = index;
+    optionElement.textContent = directory.name;
+    selector.appendChild(optionElement);
+  });
+}
+
+/**
+ * Helper to retrieve the directory configuration object currently selected by the user.
+ */
+function getActiveDirectory() {
+  const selector = document.getElementById('directory-selector');
+  if (!selector || !vaultConfig.directories) return null;
+  
+  const selectedIndex = parseInt(selector.value, 10);
+  return vaultConfig.directories[selectedIndex] || vaultConfig.directories[0];
 }
 
 /**
@@ -50,8 +87,10 @@ async function init() {
  */
 function showMessage(messageText, messageType = 'neutral', targetElementId = 'message') {
   const messageElement = document.getElementById(targetElementId);
-  messageElement.className = messageType;
-  messageElement.textContent = messageText;
+  if (messageElement) {
+    messageElement.className = messageType;
+    messageElement.textContent = messageText;
+  }
 }
 
 /**
@@ -80,7 +119,7 @@ async function authenticate() {
 }
 
 /**
- * Fetches the metadata list of available keys under the specified target directory path.
+ * Fetches the metadata list of available keys under the active target directory path.
  */
 async function loadSecrets() {
   if (!vaultToken) {
@@ -88,10 +127,16 @@ async function loadSecrets() {
     if (!isAuthenticated) return;
   }
 
-  showMessage('Fetching secret index...', 'neutral');
+  const activeDirectory = getActiveDirectory();
+  if (!activeDirectory) {
+    showMessage('No valid directory selected.', 'error');
+    return;
+  }
+
+  showMessage(`Fetching secret index for ${activeDirectory.name}...`, 'neutral');
   
-  const directoryPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
-  const listUrl = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/metadata/${directoryPath}?list=true`;
+  const directoryPath = activeDirectory.secret_path ? `${activeDirectory.secret_path}/` : '';
+  const listUrl = `${vaultConfig.vault_url}/v1/${activeDirectory.kv_engine}/metadata/${directoryPath}?list=true`;
   
   try {
     const response = await fetch(listUrl, {
@@ -192,8 +237,14 @@ async function toggleSecretData(secretKey, keysContainerElement) {
 
   keysContainerElement.innerHTML = '<span class="neutral">Retrieving internal keys...</span>';
 
-  const directoryPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
-  const dataUrl = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/data/${directoryPath}${secretKey}`;
+  const activeDirectory = getActiveDirectory();
+  if (!activeDirectory) {
+    keysContainerElement.innerHTML = '<span class="error">No active directory selection</span>';
+    return;
+  }
+
+  const directoryPath = activeDirectory.secret_path ? `${activeDirectory.secret_path}/` : '';
+  const dataUrl = `${vaultConfig.vault_url}/v1/${activeDirectory.kv_engine}/data/${directoryPath}${secretKey}`;
   
   try {
     const response = await fetch(dataUrl, {
@@ -253,8 +304,14 @@ async function toggleSecretData(secretKey, keysContainerElement) {
  * Serializes the entire secret payload object into JSON format and copies it to the clipboard.
  */
 async function copyFullSecret(secretKey, buttonElement) {
-  const directoryPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
-  const dataUrl = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/data/${directoryPath}${secretKey}`;
+  const activeDirectory = getActiveDirectory();
+  if (!activeDirectory) {
+    showMessage('No active directory selection.', 'error');
+    return;
+  }
+
+  const directoryPath = activeDirectory.secret_path ? `${activeDirectory.secret_path}/` : '';
+  const dataUrl = `${vaultConfig.vault_url}/v1/${activeDirectory.kv_engine}/data/${directoryPath}${secretKey}`;
   
   try {
     const response = await fetch(dataUrl, {
@@ -302,8 +359,14 @@ function showCreateForm() {
 async function editSecret(secretKey) {
   showMessage('Loading secret attributes for editing...', 'neutral');
   
-  const directoryPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
-  const dataUrl = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/data/${directoryPath}${secretKey}`;
+  const activeDirectory = getActiveDirectory();
+  if (!activeDirectory) {
+    showMessage('No active directory selection.', 'error');
+    return;
+  }
+
+  const directoryPath = activeDirectory.secret_path ? `${activeDirectory.secret_path}/` : '';
+  const dataUrl = `${vaultConfig.vault_url}/v1/${activeDirectory.kv_engine}/data/${directoryPath}${secretKey}`;
   
   try {
     const response = await fetch(dataUrl, {
@@ -406,10 +469,16 @@ async function saveSecret() {
     return;
   }
 
+  const activeDirectory = getActiveDirectory();
+  if (!activeDirectory) {
+    showMessage('No active directory selection.', 'error', 'create-message');
+    return;
+  }
+
   showMessage('Persisting changes...', 'neutral', 'create-message');
 
-  const directoryPath = vaultConfig.secret_path ? `${vaultConfig.secret_path}/` : '';
-  const writeUrl = `${vaultConfig.vault_url}/v1/${vaultConfig.kv_engine}/data/${directoryPath}${secretIdentifier}`;
+  const directoryPath = activeDirectory.secret_path ? `${activeDirectory.secret_path}/` : '';
+  const writeUrl = `${vaultConfig.vault_url}/v1/${activeDirectory.kv_engine}/data/${directoryPath}${secretIdentifier}`;
 
   try {
     const response = await fetch(writeUrl, {

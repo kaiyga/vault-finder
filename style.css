@@ -1,0 +1,204 @@
+/**
+ * --- Vault Finder Design System ---
+ * Unified style.css for both Popup and Options pages.
+ * 
+ * CSS API: To customize the theme, simply override these 
+ * variables in the Custom Appearance Styles (CSS) editor.
+ */
+
+ :root {
+  /* Colors - Backgrounds */
+  --vault-bg-base: #121212;
+  --vault-bg-surface: #1e1e1e;
+  --vault-bg-input-readonly: #111111;
+  
+  /* Colors - Text */
+  --vault-text-primary: #e0e0e0;
+  --vault-text-secondary: #aaaaaa;
+  --vault-text-readonly: #777777;
+  --vault-text-link: #88ccff;
+  --vault-text-link-hover: #bbddff;
+  
+  /* Colors - Borders */
+  --vault-border-color: #333333;
+  --vault-border-focus: #555555;
+  --vault-border-light: #2a2a2a;
+  --vault-border-dashed: #444444;
+  
+  /* Colors - Buttons */
+  --vault-btn-bg: #2a2a2a;
+  --vault-btn-hover: #3a3a3a;
+  --vault-btn-border: #444444;
+  
+  --vault-btn-sec-bg: #222222;
+  --vault-btn-sec-border: #3b3b3b;
+  
+  --vault-btn-success-bg: #115511;
+  --vault-btn-success-hover: #117711;
+  --vault-btn-success-border: #117711;
+  
+  --vault-btn-danger-bg: #551111;
+  --vault-btn-danger-hover: #771111;
+  --vault-btn-danger-border: #771111;
+  
+  /* Colors - Status */
+  --vault-status-success: #55ff55;
+  --vault-status-error: #ff5555;
+  --vault-status-neutral: #aaaaaa;
+  
+  /* Typography & Layout */
+  --vault-font: monospace;
+  --vault-radius: 2px;
+  --vault-spacing-sm: 5px;
+  --vault-spacing-md: 10px;
+  --vault-spacing-lg: 15px;
+}
+
+/* =========================================
+   BASE STYLES
+   ========================================= */
+body {
+  background: var(--vault-bg-base);
+  color: var(--vault-text-primary);
+  font-family: var(--vault-font);
+  margin: 0;
+}
+
+/* Layout variants */
+body.page-options {
+  padding: 20px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+body.page-popup {
+  width: 350px;
+  padding: var(--vault-spacing-md);
+}
+
+/* =========================================
+   TYPOGRAPHY & STATUS
+   ========================================= */
+h2 {
+  font-size: 16px;
+  border-bottom: 1px solid var(--vault-border-color);
+  padding-bottom: var(--vault-spacing-md);
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  margin-top: var(--vault-spacing-lg);
+  font-size: 12px;
+  color: var(--vault-text-secondary);
+}
+
+.success { color: var(--vault-status-success); }
+.error { color: var(--vault-status-error); }
+.neutral { color: var(--vault-status-neutral); }
+.hidden { display: none !important; }
+
+/* =========================================
+   FORMS & INPUTS
+   ========================================= */
+input[type="text"],
+input[type="password"],
+textarea,
+select {
+  width: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  background: var(--vault-bg-surface);
+  border: 1px solid var(--vault-border-color);
+  color: var(--vault-text-primary);
+  font-family: inherit;
+  border-radius: var(--vault-radius);
+  margin-top: var(--vault-spacing-sm);
+  margin-bottom: var(--vault-spacing-md);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--vault-border-focus);
+}
+
+input:read-only {
+  background: var(--vault-bg-input-readonly);
+  color: var(--vault-text-readonly);
+  border-color: #222;
+}
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+  background: var(--vault-btn-bg);
+  color: var(--vault-text-primary);
+  border: 1px solid var(--vault-btn-border);
+  font-family: inherit;
+  border-radius: var(--vault-radius);
+  transition: background-color 0.2s ease;
+}
+
+button:hover { background: var(--vault-btn-hover); }
+
+/* Button Variants */
+.btn-secondary {
+  background: var(--vault-btn-sec-bg);
+  border-color: var(--vault-btn-sec-border);
+}
+
+.btn-success {
+  background: var(--vault-btn-success-bg);
+  border-color: var(--vault-btn-success-border);
+}
+.btn-success:hover { background: var(--vault-btn-success-hover); }
+
+.btn-danger {
+  background: var(--vault-btn-danger-bg);
+  border-color: var(--vault-btn-danger-border);
+  padding: 4px 6px;
+}
+.btn-danger:hover { background: var(--vault-btn-danger-hover); }
+
+.btn-block { width: 100%; margin-top: var(--vault-spacing-md); }
+.btn-action-group { display: flex; justify-content: space-between; margin-top: var(--vault-spacing-lg); }
+
+/* =========================================
+   COMPONENTS: OPTIONS PAGE
+   ========================================= */
+.settings-wrapper { display: flex; flex-direction: column; }
+.divider { margin: 25px 0 10px 0; border-top: 1px solid var(--vault-border-light); }
+#css-editor-wrapper { margin-top: 15px; border-top: 1px dashed var(--vault-border-color); padding-top: 15px; }
+textarea#custom-css-editor { height: 140px; resize: vertical; font-size: 11px; }
+
+/* =========================================
+   COMPONENTS: POPUP PAGE
+   ========================================= */
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--vault-border-color); padding-bottom: 10px; }
+.header span { font-weight: bold; }
+.header-buttons { display: flex; gap: var(--vault-spacing-sm); }
+
+/* Secrets List */
+.secret-item { padding: 8px 0; border-bottom: 1px solid var(--vault-border-light); }
+.secret-header { display: flex; justify-content: space-between; align-items: center; }
+.secret-name { cursor: pointer; color: var(--vault-text-link); text-decoration: underline; word-break: break-all; margin-right: 10px; flex-grow: 1; }
+.secret-name:hover { color: var(--vault-text-link-hover); }
+.secret-actions { display: flex; gap: 4px; }
+
+/* Keys Display */
+.keys-container { margin-top: 8px; margin-left: 10px; padding-left: 10px; border-left: 1px solid var(--vault-border-dashed); display: none; }
+.key-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px dashed var(--vault-border-color); }
+.key-item:last-child { border-bottom: none; }
+.key-name { color: var(--vault-text-secondary); word-break: break-all; margin-right: 10px; font-size: 11px; cursor: pointer; }
+.key-name:hover { color: #fff; text-decoration: underline; }
+
+/* Dynamic KV form rows */
+.kv-row { display: flex; gap: var(--vault-spacing-sm); margin-bottom: var(--vault-spacing-sm); }
+.kv-row input { margin-bottom: 0; }
+#create-view { display: none; }
+#message, #create-message { font-size: 11px; margin-bottom: 10px; min-height: 14px; }

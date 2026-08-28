@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Vault Configuration</title>
-  <link rel="stylesheet" href="options.css">
+  <!-- Link to the unified design system -->
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="page-options">
   <div class="settings-wrapper">
     <h2>Vault Configuration</h2>
     
@@ -18,33 +19,29 @@
     <label for="password">Password</label>
     <input type="password" id="password">
 
-    <label for="kv_engine">KV Engine (e.g. kv)</label>
-    <input type="text" id="kv_engine" value="kv">
+    <div class="divider"></div>
 
-    <label for="secret_path">Directory (e.g. users/kaiyga)</label>
-    <input type="text" id="secret_path" placeholder="users/kaiyga">
-
-    <button id="save">Save and Test Connection</button>
-    <div id="status"></div>
+    <h2>Directories</h2>
+    <div id="directories-container"></div>
+    <button id="add-directory-btn" class="btn-secondary">+ Add Directory</button>
 
     <div class="divider"></div>
 
-    <!-- Toggle button for the custom CSS editor block -->
-    <button id="toggle-editor-btn" class="btn-secondary">Open CSS Editor</button>
+    <button id="save" class="btn-block">Save and Test Connection</button>
+    <div id="status" class="neutral" style="margin-top: 15px;"></div>
 
-    <!-- Hidden collapsible CSS editor container -->
+    <button id="toggle-editor-btn" class="btn-secondary btn-block">Open CSS Editor</button>
+
     <div id="css-editor-wrapper" class="hidden">
       <label for="custom-css-editor">Custom Appearance Styles (CSS):</label>
-      <textarea id="custom-css-editor" placeholder="/* Inject your custom CSS rules here */"></textarea>
+      <textarea id="custom-css-editor" placeholder="/* Example: :root { --vault-bg-base: #000; } */"></textarea>
       <div class="editor-actions">
         <button id="apply-css-btn" class="btn-secondary">Apply Styles</button>
       </div>
     </div>
   </div>
 
-  <!-- Dynamic injection container for user-defined styles -->
   <style id="dynamic-custom-style"></style>
-
   <script src="options.js"></script>
 </body>
 </html>

@@ -3,14 +3,41 @@
  * local persistence, validation checks, and runtime custom CSS injections.
  */
 
+// Cross-browser storage API wrapper support (Firefox / Chrome / Edge)
+const extensionStorage = globalThis.browser?.storage?.local || globalThis.chrome?.storage?.local;
+
 document.addEventListener('DOMContentLoaded', () => {
   restoreOptions();
   
   document.getElementById('save').addEventListener('click', saveAndCheckConnection);
+  document.getElementById('add-directory-btn').addEventListener('click', () => addDirectoryRow());
   
-  // Initialize collapsible CSS editor bindings
   initCssEditor();
 });
+
+/**
+ * Creates and appends a new directory input row to the settings UI.
+ */
+function addDirectoryRow(dirData = { name: '', kv_engine: 'kv', secret_path: '' }) {
+  const container = document.getElementById('directories-container');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'directory-row';
+  row.style.display = 'flex';
+  row.style.gap = '5px';
+  row.style.marginBottom = '10px';
+
+  row.innerHTML = `
+    <input type="text" class="dir-name" placeholder="Name (e.g. Prod)" value="${dirData.name || ''}" style="flex: 1;">
+    <input type="text" class="dir-kv" placeholder="Engine (kv)" value="${dirData.kv_engine || 'kv'}" style="flex: 1;">
+    <input type="text" class="dir-path" placeholder="Path (e.g. app/)" value="${dirData.secret_path || ''}" style="flex: 2;">
+    <button class="btn-remove-row btn-secondary" style="margin-top: 0px; width: auto;" title="Remove">X</button>
+  `;
+
+  row.querySelector('.btn-remove-row').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
 
 /**
  * Persists current credential fields to browser local storage
@@ -18,27 +45,44 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function saveAndCheckConnection() {
   const status = document.getElementById('status');
-  
+  if (status) {
+    status.textContent = 'Saving configuration and testing connection...';
+    status.className = 'neutral';
+  }
+
   let url = document.getElementById('vault_url').value.trim().replace(/\/$/, "");
-  let kvEngine = document.getElementById('kv_engine').value.trim().replace(/^\/+|\/+$/g, "");
-  let secretPath = document.getElementById('secret_path').value.trim().replace(/^\/+|\/+$/g, "");
+  
+  // Gather all directories from the UI
+  const directoryRows = document.querySelectorAll('.directory-row');
+  const directories = [];
+  directoryRows.forEach(row => {
+    const name = row.querySelector('.dir-name').value.trim();
+    const kv_engine = row.querySelector('.dir-kv').value.trim().replace(/^\/+|\/+$/g, "");
+    const secret_path = row.querySelector('.dir-path').value.trim().replace(/^\/+|\/+$/g, "");
+    
+    if (name && kv_engine) {
+      directories.push({ name, kv_engine, secret_path });
+    }
+  });
 
   const configurationPayload = {
     vault_url: url,
     username: document.getElementById('username').value.trim(),
     password: document.getElementById('password').value,
-    kv_engine: kvEngine,
-    secret_path: secretPath
+    directories: directories
   };
 
-  status.textContent = 'Saving configuration and testing connection...';
-  status.className = 'neutral';
-
   try {
-    await browser.storage.local.set(configurationPayload);
+    if (extensionStorage) {
+      await extensionStorage.set(configurationPayload);
+    }
 
-    if (!configurationPayload.vault_url || !configurationPayload.username || !configurationPayload.password || !configurationPayload.kv_engine) {
-      throw new Error("Missing required fields: URL, Username, Password, or KV Engine.");
+    if (!configurationPayload.vault_url || !configurationPayload.username || !configurationPayload.password) {
+      throw new Error("Missing required global fields: URL, Username, or Password.");
+    }
+
+    if (directories.length === 0) {
+      throw new Error("Please add at least one valid directory (Name and Engine are required).");
     }
 
     const loginEndpoint = `${configurationPayload.vault_url}/v1/auth/userpass/login/${configurationPayload.username}`;
@@ -50,50 +94,60 @@ async function saveAndCheckConnection() {
     });
 
     if (!response.ok) {
-      let diagnosticDetails = `HTTP status ${response.status}`;
-      try {
-        const errorResponseBody = await response.json();
-        if (errorResponseBody.errors && errorResponseBody.errors.length > 0) {
-          diagnosticDetails += ` - ${errorResponseBody.errors.join(', ')}`;
-        }
-      } catch (parsingError) {
-        // Fallback gracefully if error payload is not structured JSON
-      }
-      throw new Error(`Authentication failure: ${diagnosticDetails}`);
+      throw new Error(`Authentication failure: HTTP status ${response.status}`);
     }
 
-    status.textContent = 'Settings saved successfully. Connection verified.';
-    status.className = 'success';
-    
+    if (status) {
+      status.textContent = 'Settings saved successfully. Connection verified.';
+      status.className = 'success';
+    }
   } catch (connectionError) {
-    status.textContent = `Settings saved, but connection failed:\n${connectionError.message}`;
-    status.className = 'error';
+    if (status) {
+      status.textContent = `Settings saved, but connection failed:\n${connectionError.message}`;
+      status.className = 'error';
+    }
   }
 }
 
 /**
- * Restores previously stored configuration options and custom CSS styles from storage.
+ * Restores previously stored configuration options.
  */
-function restoreOptions() {
-  browser.storage.local.get([
-    'vault_url',
-    'username',
-    'password',
-    'kv_engine',
-    'secret_path',
-    'custom_css_payload'
-  ]).then((storedData) => {
+async function restoreOptions() {
+  if (!extensionStorage) return;
+
+  try {
+    const storedData = await extensionStorage.get([
+      'vault_url',
+      'username',
+      'password',
+      'directories',
+      'custom_css_payload'
+    ]);
+
     if (storedData.vault_url) document.getElementById('vault_url').value = storedData.vault_url;
     if (storedData.username) document.getElementById('username').value = storedData.username;
     if (storedData.password) document.getElementById('password').value = storedData.password;
-    if (storedData.kv_engine) document.getElementById('kv_engine').value = storedData.kv_engine;
-    if (storedData.secret_path !== undefined) document.getElementById('secret_path').value = storedData.secret_path;
+    
+    const container = document.getElementById('directories-container');
+    if (container) {
+      container.innerHTML = ''; // Clear existing
+      
+      if (storedData.directories && storedData.directories.length > 0) {
+        storedData.directories.forEach(dir => addDirectoryRow(dir));
+      } else {
+        addDirectoryRow(); // Add one empty row by default
+      }
+    }
     
     if (storedData.custom_css_payload) {
-      document.getElementById('custom-css-editor').value = storedData.custom_css_payload;
-      document.getElementById('dynamic-custom-style').textContent = storedData.custom_css_payload;
+      const editor = document.getElementById('custom-css-editor');
+      const styleTag = document.getElementById('dynamic-custom-style');
+      if (editor) editor.value = storedData.custom_css_payload;
+      if (styleTag) styleTag.textContent = storedData.custom_css_payload;
     }
-  });
+  } catch (restoreError) {
+    console.error('Failed to restore options:', restoreError);
+  }
 }
 
 /**
@@ -105,6 +159,8 @@ function initCssEditor() {
   const cssTextarea = document.getElementById('custom-css-editor');
   const applyBtn = document.getElementById('apply-css-btn');
   const styleContainer = document.getElementById('dynamic-custom-style');
+
+  if (!toggleBtn || !editorWrapper || !applyBtn) return;
 
   // Toggle editor visibility state on demand
   toggleBtn.addEventListener('click', () => {
@@ -121,9 +177,11 @@ function initCssEditor() {
   // Save and apply custom style rules dynamically to the DOM
   applyBtn.addEventListener('click', async () => {
     const cssRules = cssTextarea.value;
-    styleContainer.textContent = cssRules;
+    if (styleContainer) styleContainer.textContent = cssRules;
     
-    await browser.storage.local.set({ custom_css_payload: cssRules });
+    if (extensionStorage) {
+      await extensionStorage.set({ custom_css_payload: cssRules });
+    }
     
     const originalLabel = applyBtn.textContent;
     applyBtn.textContent = 'Styles Applied';

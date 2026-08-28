@@ -1,0 +1,37 @@
+name: Build Browser Extensions
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Firefox Extension
+        run: |
+          mkdir -p dist/firefox
+          cp -r icons options.html options.js options.css popup.html popup.js popup.css dist/firefox/
+          cp manifests/manifest.firefox.json dist/firefox/manifest.json
+          cd dist/firefox && zip -r ../../vault-finder-firefox.zip . && cd ../..
+
+      - name: Build Chrome Extension
+        run: |
+          mkdir -p dist/chrome
+          cp -r icons options.html options.js options.css popup.html popup.js popup.css dist/chrome/
+          cp manifests/manifest.chrome.json dist/chrome/manifest.json
+          cd dist/chrome && zip -r ../../vault-finder-chrome.zip . && cd ../..
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            vault-finder-firefox.zip
+            vault-finder-chrome.zip
