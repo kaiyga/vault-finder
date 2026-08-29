@@ -233,13 +233,14 @@ async function toggleSecretData(secretKey, keysContainerElement) {
   }
 
   keysContainerElement.style.display = 'block';
-  if (keysContainerElement.innerHTML !== '') return;
+  
+  if (keysContainerElement.hasChildNodes()) return;
 
-  keysContainerElement.innerHTML = '<span class="neutral">Retrieving internal keys...</span>';
+  setStatusMessage(keysContainerElement, 'Retrieving internal keys...', 'neutral');
 
   const activeDirectory = getActiveDirectory();
   if (!activeDirectory) {
-    keysContainerElement.innerHTML = '<span class="error">No active directory selection</span>';
+    setStatusMessage(keysContainerElement, 'No active directory selection', 'error');
     return;
   }
 
@@ -257,11 +258,11 @@ async function toggleSecretData(secretKey, keysContainerElement) {
     const responseData = await response.json();
     const secretPayload = responseData.data.data;
     
-    keysContainerElement.innerHTML = '';
+    keysContainerElement.replaceChildren();
     
     const payloadKeys = Object.keys(secretPayload);
     if (payloadKeys.length === 0) {
-      keysContainerElement.innerHTML = '<span class="neutral">Secret payload is empty</span>';
+      setStatusMessage(keysContainerElement, 'Secret payload is empty', 'neutral');
       return;
     }
 
@@ -296,8 +297,16 @@ async function toggleSecretData(secretKey, keysContainerElement) {
     });
 
   } catch (fetchingError) {
-    keysContainerElement.innerHTML = `<span class="error">Error: ${fetchingError.message}</span>`;
+    setStatusMessage(keysContainerElement, `Error: ${fetchingError.message}`, 'error');
   }
+}
+
+function setStatusMessage(container, text, className) {
+  container.replaceChildren(); 
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  container.appendChild(span);
 }
 
 /**

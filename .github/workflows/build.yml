@@ -17,16 +17,16 @@ jobs:
       - name: Build Firefox Extension
         run: |
           mkdir -p dist/firefox
-          cp -r icons options.html options.js options.css popup.html popup.js popup.css dist/firefox/
+          rsync -av --exclude='.git/' --exclude='dist/' --exclude='*.zip' ./ dist/firefox/
           cp manifests/manifest.firefox.json dist/firefox/manifest.json
-          cd dist/firefox && zip -r ../../vault-finder-firefox.zip . && cd ../..
+          (cd dist/firefox && zip -r ../../vault-finder-firefox.zip .)
 
       - name: Build Chrome Extension
         run: |
           mkdir -p dist/chrome
-          cp -r icons options.html options.js options.css popup.html popup.js popup.css dist/chrome/
+          rsync -av --exclude='.git/' --exclude='dist/' --exclude='*.zip' ./ dist/chrome/
           cp manifests/manifest.chrome.json dist/chrome/manifest.json
-          cd dist/chrome && zip -r ../../vault-finder-chrome.zip . && cd ../..
+          (cd dist/chrome && zip -r ../../vault-finder-chrome.zip .)
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1

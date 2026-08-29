@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Creates and appends a new directory input row to the settings UI.
  */
+/**
+ * Creates and appends a new directory input row to the settings UI using safe DOM methods.
+ */
 function addDirectoryRow(dirData = { name: '', kv_engine: 'kv', secret_path: '' }) {
   const container = document.getElementById('directories-container');
   if (!container) return;
@@ -28,14 +31,40 @@ function addDirectoryRow(dirData = { name: '', kv_engine: 'kv', secret_path: '' 
   row.style.gap = '5px';
   row.style.marginBottom = '10px';
 
-  row.innerHTML = `
-    <input type="text" class="dir-name" placeholder="Name (e.g. Prod)" value="${dirData.name || ''}" style="flex: 1;">
-    <input type="text" class="dir-kv" placeholder="Engine (kv)" value="${dirData.kv_engine || 'kv'}" style="flex: 1;">
-    <input type="text" class="dir-path" placeholder="Path (e.g. app/)" value="${dirData.secret_path || ''}" style="flex: 2;">
-    <button class="btn-remove-row btn-secondary" style="margin-top: 0px; width: auto;" title="Remove">X</button>
-  `;
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'dir-name';
+  nameInput.placeholder = 'Name (e.g. Prod)';
+  nameInput.value = dirData.name || '';
+  nameInput.style.flex = '1';
 
-  row.querySelector('.btn-remove-row').addEventListener('click', () => row.remove());
+  const kvInput = document.createElement('input');
+  kvInput.type = 'text';
+  kvInput.className = 'dir-kv';
+  kvInput.placeholder = 'Engine (kv)';
+  kvInput.value = dirData.kv_engine || 'kv';
+  kvInput.style.flex = '1';
+
+  const pathInput = document.createElement('input');
+  pathInput.type = 'text';
+  pathInput.className = 'dir-path';
+  pathInput.placeholder = 'Path (e.g. app/)';
+  pathInput.value = dirData.secret_path || '';
+  pathInput.style.flex = '2';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn-remove-row btn-secondary';
+  removeBtn.style.marginTop = '0px';
+  removeBtn.style.width = 'auto';
+  removeBtn.title = 'Remove';
+  removeBtn.textContent = 'X';
+  removeBtn.addEventListener('click', () => row.remove());
+
+  row.appendChild(nameInput);
+  row.appendChild(kvInput);
+  row.appendChild(pathInput);
+  row.appendChild(removeBtn);
+
   container.appendChild(row);
 }
 
