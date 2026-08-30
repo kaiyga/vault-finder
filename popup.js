@@ -36,8 +36,10 @@ const app = {
 
     this.vaultConfig = await extensionStorage.get([
       'vault_url',
+      'auth_type',
       'username',
       'password',
+      'vault_token',
       'directories',
       'custom_css_payload'
     ]);
@@ -48,8 +50,12 @@ const app = {
     }
 
     const appContent = document.getElementById('app-content');
+    const authType = this.vaultConfig.auth_type || 'userpass';
 
-    if (!this.vaultConfig.vault_url || !this.vaultConfig.username || !this.vaultConfig.password || !this.vaultConfig.directories || this.vaultConfig.directories.length === 0) {
+    const isTokenMissing = authType === 'token' && !this.vaultConfig.vault_token;
+    const isCredsMissing = (authType === 'userpass' || authType === 'ldap') && (!this.vaultConfig.username || !this.vaultConfig.password);
+
+    if (!this.vaultConfig.vault_url || isTokenMissing || isCredsMissing || !this.vaultConfig.directories || this.vaultConfig.directories.length === 0) {
       appContent.replaceChildren();
       const errBox = document.createElement('div');
       errBox.className = 'error';
@@ -154,10 +160,21 @@ const app = {
   },
 
   /**
-   * Authenticates against Vault userpass auth backend and retrieves client token.
+   * Authenticates against Vault based on the configured auth_type.
    */
-  async authenticate() {
-    const loginUrl = `${this.vaultConfig.vault_url}/v1/auth/userpass/login/${this.vaultConfig.username}`;
+async authenticate() {
+    const authType = this.vaultConfig.auth_type || 'userpass';
+
+    if (authType === 'token') {
+      this.vaultToken = this.vaultConfig.vault_token;
+      return true;
+    }
+
+    const endpoint = authType === 'ldap' 
+      ? `auth/ldap/login/${this.vaultConfig.username}`
+      : `auth/userpass/login/${this.vaultConfig.username}`;
+
+    const loginUrl = `${this.vaultConfig.vault_url}/v1/${endpoint}`;
     try {
       const res = await fetch(loginUrl, {
         method: 'POST',

@@ -1,6 +1,6 @@
 /**
  * Configuration controller for handling Vault connectivity credentials,
- * local persistence, validation checks, and runtime custom CSS injections.
+ * authentication methods (UserPass, LDAP, Token), local persistence, and custom CSS injections.
  */
 
 // Cross-browser storage API wrapper support (Firefox / Chrome / Edge)
@@ -9,15 +9,30 @@ const extensionStorage = globalThis.browser?.storage?.local || globalThis.chrome
 document.addEventListener('DOMContentLoaded', () => {
   restoreOptions();
   
-  document.getElementById('save').addEventListener('click', saveAndCheckConnection);
-  document.getElementById('add-directory-btn').addEventListener('click', () => addDirectoryRow());
+  document.getElementById('auth_type')?.addEventListener('change', handleAuthTypeChange);
+  document.getElementById('save')?.addEventListener('click', saveAndCheckConnection);
+  document.getElementById('add-directory-btn')?.addEventListener('click', () => addDirectoryRow());
   
   initCssEditor();
 });
 
 /**
- * Creates and appends a new directory input row to the settings UI.
+ * Toggles input fields visibility based on selected authentication method.
  */
+function handleAuthTypeChange() {
+  const authType = document.getElementById('auth_type').value;
+  const credsGroup = document.getElementById('credentials-group');
+  const tokenGroup = document.getElementById('token-group');
+
+  if (authType === 'token') {
+    credsGroup?.classList.add('hidden');
+    tokenGroup?.classList.remove('hidden');
+  } else {
+    credsGroup?.classList.remove('hidden');
+    tokenGroup?.classList.add('hidden');
+  }
+}
+
 /**
  * Creates and appends a new directory input row to the settings UI using safe DOM methods.
  */
@@ -69,8 +84,7 @@ function addDirectoryRow(dirData = { name: '', kv_engine: 'kv', secret_path: '' 
 }
 
 /**
- * Persists current credential fields to browser local storage
- * and executes a test authentication request against the Vault server.
+ * Persists current settings to local storage and executes a test authentication request against Vault.
  */
 async function saveAndCheckConnection() {
   const status = document.getElementById('status');
@@ -79,8 +93,12 @@ async function saveAndCheckConnection() {
     status.className = 'neutral';
   }
 
-  let url = document.getElementById('vault_url').value.trim().replace(/\/$/, "");
-  
+  const url = document.getElementById('vault_url').value.trim().replace(/\/$/, "");
+  const authType = document.getElementById('auth_type').value;
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const vaultToken = document.getElementById('vault_token').value.trim();
+
   // Gather all directories from the UI
   const directoryRows = document.querySelectorAll('.directory-row');
   const directories = [];
@@ -96,8 +114,10 @@ async function saveAndCheckConnection() {
 
   const configurationPayload = {
     vault_url: url,
-    username: document.getElementById('username').value.trim(),
-    password: document.getElementById('password').value,
+    auth_type: authType,
+    username: username,
+    password: password,
+    vault_token: vaultToken,
     directories: directories
   };
 
@@ -106,24 +126,41 @@ async function saveAndCheckConnection() {
       await extensionStorage.set(configurationPayload);
     }
 
-    if (!configurationPayload.vault_url || !configurationPayload.username || !configurationPayload.password) {
-      throw new Error("Missing required global fields: URL, Username, or Password.");
+    if (!configurationPayload.vault_url) {
+      throw new Error("Vault URL is required.");
+    }
+
+    if (authType === 'token' && !vaultToken) {
+      throw new Error("Vault Token is required for token authentication mode.");
+    }
+
+    if ((authType === 'userpass' || authType === 'ldap') && (!username || !password)) {
+      throw new Error("Username and Password are required for UserPass/LDAP authentication.");
     }
 
     if (directories.length === 0) {
       throw new Error("Please add at least one valid directory (Name and Engine are required).");
     }
 
-    const loginEndpoint = `${configurationPayload.vault_url}/v1/auth/userpass/login/${configurationPayload.username}`;
-    
-    const response = await fetch(loginEndpoint, {
-      method: 'POST',
-      body: JSON.stringify({ password: configurationPayload.password }),
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Verify authentication based on selected strategy
+    if (authType === 'token') {
+      const lookupEndpoint = `${configurationPayload.vault_url}/v1/auth/token/lookup-self`;
+      const response = await fetch(lookupEndpoint, {
+        method: 'GET',
+        headers: { 'X-Vault-Token': vaultToken }
+      });
+      if (!response.ok) throw new Error(`Token verification failed: HTTP status ${response.status}`);
+    } else {
+      const endpointPath = authType === 'ldap' ? `auth/ldap/login/${username}` : `auth/userpass/login/${username}`;
+      const loginEndpoint = `${configurationPayload.vault_url}/v1/${endpointPath}`;
+      
+      const response = await fetch(loginEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Authentication failure: HTTP status ${response.status}`);
+      if (!response.ok) throw new Error(`Authentication failure: HTTP status ${response.status}`);
     }
 
     if (status) {
@@ -147,19 +184,25 @@ async function restoreOptions() {
   try {
     const storedData = await extensionStorage.get([
       'vault_url',
+      'auth_type',
       'username',
       'password',
+      'vault_token',
       'directories',
       'custom_css_payload'
     ]);
 
     if (storedData.vault_url) document.getElementById('vault_url').value = storedData.vault_url;
+    if (storedData.auth_type) document.getElementById('auth_type').value = storedData.auth_type;
     if (storedData.username) document.getElementById('username').value = storedData.username;
     if (storedData.password) document.getElementById('password').value = storedData.password;
-    
+    if (storedData.vault_token) document.getElementById('vault_token').value = storedData.vault_token;
+
+    handleAuthTypeChange();
+
     const container = document.getElementById('directories-container');
     if (container) {
-      container.innerHTML = ''; // Clear existing
+      container.replaceChildren(); // Clear existing
       
       if (storedData.directories && storedData.directories.length > 0) {
         storedData.directories.forEach(dir => addDirectoryRow(dir));
@@ -191,7 +234,6 @@ function initCssEditor() {
 
   if (!toggleBtn || !editorWrapper || !applyBtn) return;
 
-  // Toggle editor visibility state on demand
   toggleBtn.addEventListener('click', () => {
     const isHidden = editorWrapper.classList.contains('hidden');
     if (isHidden) {
@@ -203,7 +245,6 @@ function initCssEditor() {
     }
   });
 
-  // Save and apply custom style rules dynamically to the DOM
   applyBtn.addEventListener('click', async () => {
     const cssRules = cssTextarea.value;
     if (styleContainer) styleContainer.textContent = cssRules;
