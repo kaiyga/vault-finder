@@ -1,8 +1,9 @@
 /**
  * Popup Application Shell & View Router.
+ * Manages global application state, active configurations, session storage, and view rendering.
  */
 const extensionStorage = globalThis.browser?.storage?.local || globalThis.chrome?.storage?.local;
-const sessionStorageApi = globalThis.browser?.storage?.session || globalThis.chrome?.storage?.session || extensionStorage;
+const extensionSession = globalThis.browser?.storage?.session || globalThis.chrome?.storage?.session || extensionStorage;
 
 const app = {
   vaultConfig: {},
@@ -12,14 +13,17 @@ const app = {
   searchQuery: '',
   unwrappedCache: null,
 
-  // Registry of available popup sub-menus
+  // Registry of available popup sub-views
   views: {
     secretManager: secretManager,
     secretEditor: secretEditor,
     secretUnwrapper: secretUnwrapper
   },
 
-async init() {
+  /**
+   * Application entry point. Loads configurations, restores active session, and decides initial view.
+   */
+  async init() {
     document.getElementById('open-settings')?.addEventListener('click', () => {
       if (globalThis.browser?.runtime?.openOptionsPage) {
         globalThis.browser.runtime.openOptionsPage();
@@ -54,15 +58,10 @@ async init() {
       return;
     }
 
-    try {
-      const sessionData = await sessionStorageApi.get('vault_unwrapped_cache');
-      if (sessionData && sessionData.vault_unwrapped_cache) {
-        this.unwrappedCache = sessionData.vault_unwrapped_cache;
-      }
-    } catch (e) {
-      console.error('Failed to restore unwrapped cache from session:', e);
-    }
+    // Restore cached unwrapped payload from session storage if present
+    this.unwrappedCache = await this.getUnwrappedCache();
 
+    // Auto-route: If an active unwrapped secret exists in memory, display it immediately
     if (this.unwrappedCache !== null) {
       this.renderView('secretUnwrapper');
     } else {
@@ -71,7 +70,7 @@ async init() {
   },
 
   /**
-   * Main Router function: Swaps current view container content dynamically.
+   * Main Router: Dynamically swaps sub-view content within the main container.
    */
   renderView(viewName, params = {}) {
     const appContent = document.getElementById('app-content');
@@ -82,22 +81,81 @@ async init() {
       return;
     }
 
-    // Swap node safely
     const viewElement = targetView.render(this, params);
     appContent.replaceChildren(viewElement);
   },
 
+  /**
+   * Session Storage Abstraction: Fetches cached unwrapped secret payload.
+   */
+  async getUnwrappedCache() {
+    try {
+      if (!extensionSession) return null;
+      const res = await extensionSession.get('vault_unwrapped_cache');
+      return res?.vault_unwrapped_cache || null;
+    } catch (err) {
+      console.error('Failed to read session cache:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Session Storage Abstraction: Persists unwrapped secret payload to browser session.
+   */
+  async setUnwrappedCache(payload) {
+    this.unwrappedCache = payload;
+    try {
+      if (extensionSession) {
+        await extensionSession.set({ vault_unwrapped_cache: payload });
+      }
+    } catch (err) {
+      console.error('Failed to set session cache:', err);
+    }
+  },
+
+  /**
+   * Session Storage Abstraction: Clears active unwrapped secret payload.
+   */
+  async clearUnwrappedCache() {
+    this.unwrappedCache = null;
+    try {
+      if (extensionSession) {
+        await extensionSession.remove('vault_unwrapped_cache');
+      }
+    } catch (err) {
+      console.error('Failed to clear session cache:', err);
+    }
+  },
+
+  /**
+   * Returns active directory configuration object.
+   */
   getActiveDirectory() {
     if (!this.vaultConfig.directories) return null;
     return this.vaultConfig.directories[this.selectedDirectoryIndex] || this.vaultConfig.directories[0];
   },
 
+  /**
+   * Formats and returns full secret directory path.
+   */
+  getActiveDirPath() {
+    const activeDir = this.getActiveDirectory();
+    if (!activeDir) return '';
+    return activeDir.secret_path ? `${activeDir.secret_path}/` : '';
+  },
+
+  /**
+   * Utility helper to update status/error message elements.
+   */
   showMessage(element, text, className) {
     if (!element) return;
     element.className = className;
     element.textContent = text;
   },
 
+  /**
+   * Authenticates against Vault userpass auth backend and retrieves client token.
+   */
   async authenticate() {
     const loginUrl = `${this.vaultConfig.vault_url}/v1/auth/userpass/login/${this.vaultConfig.username}`;
     try {

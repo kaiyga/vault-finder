@@ -1,6 +1,6 @@
 /**
  * Secret Editor View Component.
- * Handles creating, editing, and single-use ephemeral Wrapping of secrets.
+ * Handles creation, edition, and ephemeral response wrapping of KV secrets.
  */
 const secretEditor = {
   render(context, params = {}) {
@@ -26,6 +26,7 @@ const secretEditor = {
     kvRowsContainer.id = 'kv-rows';
 
     const addRowBtn = document.createElement('button');
+    addRowBtn.type = 'button';
     addRowBtn.className = 'btn-block';
     addRowBtn.textContent = '+ Add Key Pair';
     addRowBtn.onclick = () => secretEditor.addKvRow(kvRowsContainer);
@@ -34,16 +35,20 @@ const secretEditor = {
     actionGroup.className = 'btn-action-group';
 
     const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.onclick = () => context.renderView('secretManager');
 
+    // Ephemeral wrap token creation (does not persist secret to KV backend)
     const wrapBtn = document.createElement('button');
+    wrapBtn.type = 'button';
     wrapBtn.className = 'btn-warning';
     wrapBtn.textContent = 'Wrap to Clipboard';
     wrapBtn.title = 'Create disposable one-time token without saving secret';
-    wrapBtn.onclick = () => secretEditor.wrapSecret(context, container, params);
+    wrapBtn.onclick = () => secretEditor.wrapSecret(context, container);
 
     const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
     saveBtn.className = 'btn-success';
     saveBtn.textContent = 'Save';
     saveBtn.onclick = () => secretEditor.saveSecret(context, container, params);
@@ -58,17 +63,19 @@ const secretEditor = {
     container.appendChild(addRowBtn);
     container.appendChild(actionGroup);
 
-    queueMicrotask(() => {
-      if (params.isEditMode) {
-        secretEditor.loadExistingPayload(context, container, params.secretKey);
-      } else {
-        secretEditor.addKvRow(kvRowsContainer);
-      }
-    });
+    // Initial load: edit existing payload or insert initial empty row
+    if (params.isEditMode) {
+      secretEditor.loadExistingPayload(context, container, params.secretKey);
+    } else {
+      secretEditor.addKvRow(kvRowsContainer);
+    }
 
     return container;
   },
 
+  /**
+   * Appends an editable key-value input row to the editor DOM container.
+   */
   addKvRow(container, key = '', val = '') {
     if (!container) return;
     
@@ -97,7 +104,8 @@ const secretEditor = {
     toggleVisibilityBtn.textContent = '👁';
     toggleVisibilityBtn.title = 'Toggle visibility';
     toggleVisibilityBtn.style.padding = '4px 8px';
-    toggleVisibilityBtn.onclick = () => {
+    toggleVisibilityBtn.onclick = (e) => {
+      e.preventDefault();
       const isPassword = vInput.type === 'password';
       vInput.type = isPassword ? 'text' : 'password';
       toggleVisibilityBtn.textContent = isPassword ? '🙈' : '👁';
@@ -118,6 +126,9 @@ const secretEditor = {
     container.appendChild(row);
   },
 
+  /**
+   * Loads attributes of an existing secret payload into editor fields.
+   */
   async loadExistingPayload(context, container, secretKey) {
     const msgBox = container.querySelector('#create-message');
     const kvRowsContainer = container.querySelector('#kv-rows');
@@ -129,7 +140,7 @@ const secretEditor = {
       return;
     }
 
-    const dirPath = activeDir.secret_path ? `${activeDir.secret_path}/` : '';
+    const dirPath = context.getActiveDirPath();
     const dataUrl = `${context.vaultConfig.vault_url}/v1/${activeDir.kv_engine}/data/${dirPath}${secretKey}`;
 
     try {
@@ -153,8 +164,7 @@ const secretEditor = {
   },
 
   /**
-   * Generates disposable response wrapping token for current input attributes.
-   * Vault intercepts the payload in memory and returns wrap token without persisting to KV backend.
+   * Requests disposable wrapping token for current form attributes and copies token to clipboard.
    */
   async wrapSecret(context, container) {
     const msgBox = container.querySelector('#create-message');
@@ -203,6 +213,9 @@ const secretEditor = {
     }
   },
 
+  /**
+   * Persists currently configured secret fields back to Vault KV storage backend.
+   */
   async saveSecret(context, container) {
     const msgBox = container.querySelector('#create-message');
     const nameInput = container.querySelector('#new-secret-name');
@@ -234,7 +247,7 @@ const secretEditor = {
 
     context.showMessage(msgBox, 'Saving changes...', 'neutral');
 
-    const dirPath = activeDir.secret_path ? `${activeDir.secret_path}/` : '';
+    const dirPath = context.getActiveDirPath();
     const writeUrl = `${context.vaultConfig.vault_url}/v1/${activeDir.kv_engine}/data/${dirPath}${secretId}`;
 
     try {

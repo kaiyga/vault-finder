@@ -1,13 +1,13 @@
 /**
  * Secret Manager View Component.
- * Renders directory selector, search bar, and secret index listing.
+ * Handles rendering of directory selector, live search, key navigation, and secret actions.
  */
 const secretManager = {
   render(context) {
     const container = document.createElement('div');
     container.id = 'main-view';
 
-    // Directory Selector
+    // Directory Selector Dropdown
     const select = document.createElement('select');
     select.id = 'directory-selector';
     context.vaultConfig.directories.forEach((dir, idx) => {
@@ -24,7 +24,7 @@ const secretManager = {
       secretManager.loadSecrets(context, container);
     });
 
-    // Search Bar
+    // Real-time Search Input
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.id = 'search';
@@ -35,18 +35,19 @@ const secretManager = {
       secretManager.renderList(context, container);
     });
 
-    // Message Box
+    // Status Message Element
     const messageBox = document.createElement('div');
     messageBox.id = 'message';
     messageBox.className = 'neutral';
 
-
+    // Top Navigation & Action Panel
     const actionGroup = document.createElement('div');
     actionGroup.style.display = 'flex';
     actionGroup.style.gap = 'var(--vault-spacing-sm)';
     actionGroup.style.marginBottom = 'var(--vault-spacing-md)';
 
     const unwrapNavBtn = document.createElement('button');
+    unwrapNavBtn.type = 'button';
     unwrapNavBtn.className = 'btn-secondary';
     unwrapNavBtn.textContent = '🔓 Unwrap';
     unwrapNavBtn.title = 'Unwrap temporary secret token';
@@ -54,6 +55,7 @@ const secretManager = {
     unwrapNavBtn.onclick = () => context.renderView('secretUnwrapper');
 
     const createBtn = document.createElement('button');
+    createBtn.type = 'button';
     createBtn.className = 'btn-secondary';
     createBtn.textContent = '+ Create Secret';
     createBtn.style.flex = '1';
@@ -62,7 +64,7 @@ const secretManager = {
     actionGroup.appendChild(unwrapNavBtn);
     actionGroup.appendChild(createBtn);
 
-    // Secrets List Container
+    // Dynamic Secrets Index List
     const secretsList = document.createElement('div');
     secretsList.id = 'secrets-list';
 
@@ -70,15 +72,17 @@ const secretManager = {
     container.appendChild(searchInput);
     container.appendChild(messageBox);
     container.appendChild(secretsList);
-
-    // Initial Data Fetch
-    secretManager.loadSecrets(context, container);
-
     container.appendChild(actionGroup);
+
+    // Initial Data Fetching
+    secretManager.loadSecrets(context, container);
 
     return container;
   },
 
+  /**
+   * Fetches key metadata list for the currently selected active directory.
+   */
   async loadSecrets(context, container) {
     const messageBox = container.querySelector('#message');
     
@@ -95,7 +99,7 @@ const secretManager = {
 
     context.showMessage(messageBox, `Fetching index for ${activeDirectory.name}...`, 'neutral');
     
-    const directoryPath = activeDirectory.secret_path ? `${activeDirectory.secret_path}/` : '';
+    const directoryPath = context.getActiveDirPath();
     const listUrl = `${context.vaultConfig.vault_url}/v1/${activeDirectory.kv_engine}/metadata/${directoryPath}?list=true`;
 
     try {
@@ -128,6 +132,9 @@ const secretManager = {
     }
   },
 
+  /**
+   * Filters and renders indexed secret entries into the DOM.
+   */
   renderList(context, container) {
     const query = (context.searchQuery || '').toLowerCase();
     const listContainer = container.querySelector('#secrets-list');
@@ -151,10 +158,12 @@ const secretManager = {
       actions.className = 'secret-actions';
 
       const editBtn = document.createElement('button');
+      editBtn.type = 'button';
       editBtn.textContent = 'Edit';
       editBtn.onclick = () => context.renderView('secretEditor', { secretKey, isEditMode: true });
 
       const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
       copyBtn.textContent = 'Copy';
       copyBtn.onclick = () => secretManager.copyFullSecret(context, secretKey, copyBtn, container);
 
@@ -173,6 +182,9 @@ const secretManager = {
     });
   },
 
+  /**
+   * Toggles inline accordion view to show/hide individual key-value pairs of a secret.
+   */
   async toggleSecretData(context, secretKey, keysContainer) {
     if (keysContainer.style.display === 'block') {
       keysContainer.style.display = 'none';
@@ -184,7 +196,7 @@ const secretManager = {
 
     secretManager.setKeysStatus(keysContainer, 'Retrieving keys...', 'neutral');
     const activeDir = context.getActiveDirectory();
-    const dirPath = activeDir.secret_path ? `${activeDir.secret_path}/` : '';
+    const dirPath = context.getActiveDirPath();
     const dataUrl = `${context.vaultConfig.vault_url}/v1/${activeDir.kv_engine}/data/${dirPath}${secretKey}`;
 
     try {
@@ -215,6 +227,7 @@ const secretManager = {
         };
 
         const copyValBtn = document.createElement('button');
+        copyValBtn.type = 'button';
         copyValBtn.textContent = 'Copy';
         copyValBtn.onclick = async () => {
           await navigator.clipboard.writeText(payload[k]);
@@ -231,6 +244,9 @@ const secretManager = {
     }
   },
 
+  /**
+   * Helper to set temporary loading or status messages inside key accordion containers.
+   */
   setKeysStatus(container, text, className) {
     container.replaceChildren();
     const span = document.createElement('span');
@@ -239,9 +255,12 @@ const secretManager = {
     container.appendChild(span);
   },
 
+  /**
+   * Fetches full secret payload and copies raw JSON string representation to system clipboard.
+   */
   async copyFullSecret(context, secretKey, btn, container) {
     const activeDir = context.getActiveDirectory();
-    const dirPath = activeDir.secret_path ? `${activeDir.secret_path}/` : '';
+    const dirPath = context.getActiveDirPath();
     const dataUrl = `${context.vaultConfig.vault_url}/v1/${activeDir.kv_engine}/data/${dirPath}${secretKey}`;
 
     try {

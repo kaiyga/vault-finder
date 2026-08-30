@@ -1,6 +1,6 @@
 /**
  * Secret Unwrapper View Component.
- * Automatically displays cached secret if available, skipping token prompt.
+ * Automatically presents active cached unwrapped secrets, bypassing token input screens.
  */
 const secretUnwrapper = {
   render(context) {
@@ -12,6 +12,7 @@ const secretUnwrapper = {
     messageBox.id = 'unwrap-message';
     messageBox.className = 'neutral';
 
+    // Wrapping Token Input Control Group
     const tokenInputGroup = document.createElement('div');
     tokenInputGroup.id = 'token-input-group';
 
@@ -32,6 +33,7 @@ const secretUnwrapper = {
     tokenInputGroup.appendChild(tokenInput);
     tokenInputGroup.appendChild(unwrapBtn);
 
+    // Payload display container
     const payloadContainer = document.createElement('div');
     payloadContainer.id = 'unwrapped-payload';
     payloadContainer.style.display = 'none';
@@ -41,23 +43,20 @@ const secretUnwrapper = {
 
     payloadContainer.appendChild(kvRowsContainer);
 
+    // Bottom Action Bar
     const actionGroup = document.createElement('div');
     actionGroup.className = 'btn-action-group';
 
     const clearAndBackBtn = document.createElement('button');
     clearAndBackBtn.type = 'button';
     clearAndBackBtn.className = 'btn-danger btn-block';
-    clearAndBackBtn.textContent = 'Burn';
+    clearAndBackBtn.textContent = 'Burn & Back to Manager';
     clearAndBackBtn.onclick = async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      context.unwrappedCache = null;
-      const sessionApi = globalThis.browser?.storage?.session || globalThis.chrome?.storage?.session || globalThis.chrome?.storage?.local;
-      if (sessionApi) {
-        await sessionApi.remove('vault_unwrapped_cache');
-      }
-
+      // Clear session memory cache and navigate back to manager view
+      await context.clearUnwrappedCache();
       context.renderView('secretManager');
     };
 
@@ -68,17 +67,19 @@ const secretUnwrapper = {
     container.appendChild(payloadContainer);
     container.appendChild(actionGroup);
 
-    queueMicrotask(() => {
-      if (context.unwrappedCache !== null) {
-        secretUnwrapper.displayPayload(context, container, context.unwrappedCache);
-      } else {
-        messageBox.textContent = 'Paste a Vault wrap token to extract secret payload';
-      }
-    });
+    // Synchronous execution: Render cached secret immediately if available
+    if (context.unwrappedCache !== null) {
+      secretUnwrapper.displayPayload(context, container, context.unwrappedCache);
+    } else {
+      messageBox.textContent = 'Paste a Vault wrap token to extract secret payload';
+    }
 
     return container;
   },
 
+  /**
+   * Sends unwrap request to Vault backend and stores result into memory session.
+   */
   async unwrap(context, container) {
     const msgBox = container.querySelector('#unwrap-message');
     const tokenInput = container.querySelector('#wrap-token-input');
@@ -116,18 +117,17 @@ const secretUnwrapper = {
         return;
       }
 
-      context.unwrappedCache = payload;
-      const sessionApi = globalThis.browser?.storage?.session || globalThis.chrome?.storage?.session || globalThis.chrome?.storage?.local;
-      if (sessionApi) {
-        await sessionApi.set({ vault_unwrapped_cache: payload });
-      }
-
+      // Save payload to session abstraction
+      await context.setUnwrappedCache(payload);
       secretUnwrapper.displayPayload(context, container, payload);
     } catch (err) {
       context.showMessage(msgBox, `Unwrap failed: ${err.message}`, 'error');
     }
   },
 
+  /**
+   * Modifies DOM view to display unwrapped key-value pairs and hide input prompt.
+   */
   displayPayload(context, container, payload) {
     const msgBox = container.querySelector('#unwrap-message');
     const tokenGroup = container.querySelector('#token-input-group');
@@ -145,6 +145,9 @@ const secretUnwrapper = {
     context.showMessage(msgBox, 'Unwrapped Secret (Active in memory)', 'success');
   },
 
+  /**
+   * Renders read-only key-value pair rows with visibility toggle and quick copy buttons.
+   */
   addKvRow(container, key = '', val = '') {
     if (!container) return;
 
