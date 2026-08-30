@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Link to the unified design system -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="page-popup">
@@ -12,30 +11,17 @@
       <button id="open-settings">Settings</button>
     </div>
   </div>
-  
-  <div id="main-view">
-    <select id="directory-selector"></select>
-    <input type="text" id="search" placeholder="Search secret...">
-    <div id="message" class="neutral"></div>
-    <div id="secrets-list"></div>
-  </div>
 
-  <div id="create-view">
-    <div id="create-message" class="neutral">Fill in secret payload details</div>
-    <input type="text" id="new-secret-name" placeholder="Secret name (e.g. my_app)">
-    
-    <div id="kv-rows"></div>
-    
-    <button id="add-kv-row" class="btn-block">+ Add Key Pair</button>
-    
-    <div class="btn-action-group">
-      <button id="cancel-create">Cancel</button>
-      <button id="save-secret" class="btn-success">Save</button>
-    </div>
-  </div>
+  <!-- Dynamic view container -->
+  <div id="app-content"></div>
 
-  <!-- Dynamic runtime CSS injection target block for popup interface -->
+  <!-- Dynamic custom CSS target -->
   <style id="dynamic-custom-style"></style>
+
+  <!-- Component Modules & Entry Point -->
+  <script src="views/secretManager.js"></script>
+  <script src="views/secretEditor.js"></script>
+  <script src="views/secretUnwrapper.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
