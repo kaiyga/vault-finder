@@ -175,14 +175,14 @@ const secretUnwrapper = {
     const toggleVisibilityBtn = document.createElement('button');
     toggleVisibilityBtn.type = 'button';
     toggleVisibilityBtn.className = 'btn-secondary';
-    toggleVisibilityBtn.textContent = '👁';
+    toggleVisibilityBtn.textContent = 'S';
     toggleVisibilityBtn.title = 'Toggle visibility';
     toggleVisibilityBtn.style.padding = '4px 8px';
     toggleVisibilityBtn.onclick = (e) => {
       e.preventDefault();
       const isPassword = vInput.type === 'password';
       vInput.type = isPassword ? 'text' : 'password';
-      toggleVisibilityBtn.textContent = isPassword ? '🙈' : '👁';
+      toggleVisibilityBtn.textContent = isPassword ? 'H' : 'S';
     };
 
     const copyValBtn = document.createElement('button');

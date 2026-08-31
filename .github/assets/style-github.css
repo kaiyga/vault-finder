@@ -1,0 +1,57 @@
+/**
+ * GitHub Dark Theme Example
+ * Paste this snippet into the Custom Appearance Styles editor.
+ */
+:root {
+  /* Base & Surfaces (GitHub Dark Default) */
+  --vault-bg-base: #0d1117;            /* canvas-default */
+  --vault-bg-surface: #161b22;         /* canvas-overlay / surface */
+  --vault-bg-input-readonly: #010409;   /* canvas-inset */
+
+  /* Text & Typography */
+  --vault-text-primary: #f0f6fc;       /* fg-default */
+  --vault-text-secondary: #8d96a0;     /* fg-muted */
+  --vault-text-readonly: #6e7681;      /* fg-subtle */
+  --vault-text-link: #4493f8;          /* accent-fg (GitHub Blue) */
+  --vault-text-link-hover: #58a6ff;    /* accent-emphasis */
+
+  /* Borders & Dividers */
+  --vault-border-color: #30363d;       /* border-default */
+  --vault-border-focus: #1f6feb;       /* accent-muted / focus ring */
+  --vault-border-light: #21262d;       /* border-subtle */
+  --vault-border-dashed: #30363d;      /* border-default */
+
+  /* Standard Buttons */
+  --vault-btn-bg: #21262d;             /* btn-bg */
+  --vault-btn-hover: #30363d;          /* btn-hover-bg */
+  --vault-btn-border: #30363d;         /* btn-border */
+
+  /* Secondary Buttons */
+  --vault-btn-sec-bg: #161b22;         /* btn-secondary-bg */
+  --vault-btn-sec-border: #30363d;     /* btn-secondary-border */
+
+  /* Success Action Buttons (GitHub Primary Green) */
+  --vault-btn-success-bg: #238636;     /* btn-primary-bg */
+  --vault-btn-success-hover: #2ea043;  /* btn-primary-hover-bg */
+  --vault-btn-success-border: #2ea043; /* btn-primary-border */
+
+  /* Danger Buttons (GitHub Red) */
+  --vault-btn-danger-bg: #da3633;      /* btn-danger-bg */
+  --vault-btn-danger-hover: #f85149;   /* btn-danger-hover-bg */
+  --vault-btn-danger-border: #f85149;   /* btn-danger-border */
+
+  /* Status Indicators */
+  --vault-status-success: #3fb950;     /* open / success green */
+  --vault-status-error: #f85149;       /* closed / danger red */
+  --vault-status-neutral: #8d96a0;     /* muted status */
+
+  /* Layout Customizations */
+  --vault-radius: 2px;                 /* Primer standard radius */
+}
+
+/* GitHub Specific Button Typography Rules */
+button.btn-success,
+button.btn-danger {
+  color: #ffffff;
+  font-weight: 600;
+}

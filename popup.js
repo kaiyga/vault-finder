@@ -134,6 +134,34 @@ const app = {
   },
 
   /**
+   * Session Storage Abstraction: Fetches cached session token.
+   */
+  async getSessionToken() {
+    try {
+      if (!extensionSession) return null;
+      const res = await extensionSession.get('vault_session_token');
+      return res?.vault_session_token || null;
+    } catch (err) {
+      console.error('Failed to read token from session storage:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Session Storage Abstraction: Caches authenticated Vault token.
+   */
+  async setSessionToken(token) {
+    this.vaultToken = token;
+    try {
+      if (extensionSession) {
+        await extensionSession.set({ vault_session_token: token });
+      }
+    } catch (err) {
+      console.error('Failed to cache token to session storage:', err);
+    }
+  },
+
+  /**
    * Returns active directory configuration object.
    */
   getActiveDirectory() {
@@ -158,15 +186,48 @@ const app = {
     element.className = className;
     element.textContent = text;
   },
+   /**
+   * Inspects token policies via Vault REST API to enforce anti-root policy.
+   * Runs strictly ONCE during initial authentication.
+   */
+  async validateTokenSanity(token) {
+    try {
+      const lookupUrl = `${this.vaultConfig.vault_url}/v1/auth/token/lookup-self`;
+      const res = await fetch(lookupUrl, {
+        headers: { 'X-Vault-Token': token }
+      });
+      if (!res.ok) return true; // Fail-open on lookup error
+      const data = await res.json();
+      const policies = data?.data?.policies || [];
+      
+      if (policies.includes('root')) {
+        throw new Error("You are root! Generate scoped token, stupid!");
+      }
+      return true;
+    } catch (err) {
+      throw err;
+    }
+  },
 
   /**
    * Authenticates against Vault based on the configured auth_type.
+   * Fast-path: Uses cached session token without additional network validation.
    */
-async authenticate() {
+  async authenticate() {
     const authType = this.vaultConfig.auth_type || 'userpass';
 
     if (authType === 'token') {
-      this.vaultToken = this.vaultConfig.vault_token;
+      const token = this.vaultConfig.vault_token;
+      if (this.vaultToken === token) return true;
+      
+      await this.validateTokenSanity(token);
+      this.vaultToken = token;
+      return true;
+    }
+
+    const cachedToken = await this.getSessionToken();
+    if (cachedToken) {
+      this.vaultToken = cachedToken;
       return true;
     }
 
@@ -183,11 +244,15 @@ async authenticate() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      this.vaultToken = data.auth.client_token;
+      const newToken = data.auth.client_token;
+
+      await this.validateTokenSanity(newToken);
+
+      await this.setSessionToken(newToken);
       return true;
     } catch (err) {
       console.error('Authentication error:', err);
-      return false;
+      throw err;
     }
   }
 };

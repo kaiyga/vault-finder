@@ -17,14 +17,14 @@ jobs:
       - name: Build Firefox Extension
         run: |
           mkdir -p dist/firefox
-          rsync -av --exclude='.git/' --exclude='dist/' --exclude='*.zip' ./ dist/firefox/
+          rsync -av --exclude='.github/' --exclude='.git/' --exclude='dist/' --exclude='*.zip' ./ dist/firefox/
           cp manifests/manifest.firefox.json dist/firefox/manifest.json
           (cd dist/firefox && zip -r ../../vault-finder-firefox.zip .)
 
       - name: Build Chrome Extension
         run: |
           mkdir -p dist/chrome
-          rsync -av --exclude='.git/' --exclude='dist/' --exclude='*.zip' ./ dist/chrome/
+          rsync -av --exclude='.github/' --exclude='.git/' --exclude='dist/' --exclude='*.zip' ./ dist/chrome/
           cp manifests/manifest.chrome.json dist/chrome/manifest.json
           (cd dist/chrome && zip -r ../../vault-finder-chrome.zip .)
 

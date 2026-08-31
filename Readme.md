@@ -4,6 +4,8 @@
 
 ---
 
+![Banner](./.github/assets/banner.png)
+
 [Firefox Exstension](https://addons.mozilla.org/en-US/firefox/addon/vault-finder) 
 
 ---
@@ -26,6 +28,22 @@
 * **Local Configuration Persistence:** All Vault connection parameters (URL, tokens, auth modes, and folder mappings) are saved locally using `browser.storage.local`.
 * **Direct REST Communication:** Network calls are executed directly between your browser runtime and your configured Vault server endpoint without intermediary proxy layers.
 * **Zero Telemetry:** No third-party analytics, background trackers, or telemetry scripts. Because i havent money for it;3 
+
+Use scoped tokens with minimal required policies (e.g. read/write only for your personal KV path) and sensible TTLs. If you paste a root token into a browser extension, no amount of client-side encryption is going to save your infrastructure anyway. 
+
+---
+
+## Custom Styling & CSS API
+
+The application features a flexible CSS Variable system defined in style.css.
+
+You can customize the extension appearance by overriding these variables or providing fully custom style rules in the Custom Appearance Styles (CSS) editor on the Options page.
+
+Preset themes available:
+
+Theme for example: 
+- [Github Dark](./.github/assets/style-github.css) 
+- [Cattpuccin Mocha Blue](./.github/assets/style-cattpuccin-mocha.css) 
 
 ---
 
@@ -59,13 +77,3 @@ Pushing a version tag (e.g., `git tag v1.0.0 && git push origin v1.0.0`) or trig
 * `vault-finder-firefox.zip`
 
 ---
-
-## Custom Styling & CSS API
-
-The application features a flexible CSS Variable system defined in style.css.
-
-You can customize the extension appearance by overriding these variables or providing fully custom style rules in the Custom Appearance Styles (CSS) editor on the Options page.
-
-Preset themes available:
-
-Theme for example: [Cattpuccin Mocha Blue](./style-cattpuccin-mocha.css) 

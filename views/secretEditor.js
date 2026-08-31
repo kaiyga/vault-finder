@@ -1,6 +1,6 @@
 /**
  * Secret Editor View Component.
- * Handles creation, edition, and ephemeral response wrapping of KV secrets.
+ * Handles creation, edition, ephemeral response wrapping, and metadata deletion of KV secrets.
  */
 const secretEditor = {
   render(context, params = {}) {
@@ -42,8 +42,7 @@ const secretEditor = {
     // Ephemeral wrap token creation (does not persist secret to KV backend)
     const wrapBtn = document.createElement('button');
     wrapBtn.type = 'button';
-    wrapBtn.className = 'btn-warning';
-    wrapBtn.textContent = 'Wrap to Clipboard';
+    wrapBtn.textContent = 'Wrap Secret';
     wrapBtn.title = 'Create disposable one-time token without saving secret';
     wrapBtn.onclick = () => secretEditor.wrapSecret(context, container);
 
@@ -51,11 +50,22 @@ const secretEditor = {
     saveBtn.type = 'button';
     saveBtn.className = 'btn-success';
     saveBtn.textContent = 'Save';
-    saveBtn.onclick = () => secretEditor.saveSecret(context, container, params);
+    saveBtn.onclick = () => secretEditor.saveSecret(context, container);
 
-    actionGroup.appendChild(cancelBtn);
     actionGroup.appendChild(wrapBtn);
     actionGroup.appendChild(saveBtn);
+    actionGroup.appendChild(cancelBtn);
+
+    // Display Delete button only when editing an existing secret
+    if (params.isEditMode) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'btn-danger';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.title = 'Permanently delete secret metadata and all versions';
+      deleteBtn.onclick = () => secretEditor.deleteSecret(context, container, params.secretKey);
+      actionGroup.appendChild(deleteBtn);
+    }
 
     container.appendChild(messageBox);
     container.appendChild(nameInput);
@@ -101,14 +111,14 @@ const secretEditor = {
     const toggleVisibilityBtn = document.createElement('button');
     toggleVisibilityBtn.type = 'button';
     toggleVisibilityBtn.className = 'btn-secondary';
-    toggleVisibilityBtn.textContent = '👁';
+    toggleVisibilityBtn.textContent = 'S';
     toggleVisibilityBtn.title = 'Toggle visibility';
     toggleVisibilityBtn.style.padding = '4px 8px';
     toggleVisibilityBtn.onclick = (e) => {
       e.preventDefault();
       const isPassword = vInput.type === 'password';
       vInput.type = isPassword ? 'text' : 'password';
-      toggleVisibilityBtn.textContent = isPassword ? '🙈' : '👁';
+      toggleVisibilityBtn.textContent = isPassword ? 'H' : 'S';
     };
 
     const removeBtn = document.createElement('button');
@@ -270,6 +280,47 @@ const secretEditor = {
       context.renderView('secretManager');
     } catch (err) {
       context.showMessage(msgBox, err.message, 'error');
+    }
+  },
+
+  /**
+   * Permanently deletes secret metadata and all historical versions from Vault KV backend.
+   */
+  async deleteSecret(context, container, secretKey) {
+    if (!confirm(`Are you sure you want to permanently delete secret "${secretKey}"?`)) {
+      return;
+    }
+
+    const msgBox = container.querySelector('#create-message');
+    const activeDir = context.getActiveDirectory();
+    
+    if (!activeDir) {
+      context.showMessage(msgBox, 'No active directory selected.', 'error');
+      return;
+    }
+
+    context.showMessage(msgBox, `Deleting secret ${secretKey}...`, 'neutral');
+
+    const dirPath = context.getActiveDirPath();
+    // Uses /metadata/ endpoint to delete secret key completely (all versions & metadata)
+    const deleteUrl = `${context.vaultConfig.vault_url}/v1/${activeDir.kv_engine}/metadata/${dirPath}${secretKey}`;
+
+    try {
+      const res = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: { 'X-Vault-Token': context.vaultToken }
+      });
+
+      if (!res.ok && res.status !== 204) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      // Remove from local cache array
+      context.allSecrets = context.allSecrets.filter(s => s !== secretKey);
+      
+      context.renderView('secretManager');
+    } catch (err) {
+      context.showMessage(msgBox, `Delete failed: ${err.message}`, 'error');
     }
   }
 };

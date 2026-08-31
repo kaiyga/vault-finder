@@ -49,7 +49,7 @@ const secretManager = {
     const unwrapNavBtn = document.createElement('button');
     unwrapNavBtn.type = 'button';
     unwrapNavBtn.className = 'btn-secondary';
-    unwrapNavBtn.textContent = '🔓 Unwrap';
+    unwrapNavBtn.textContent = 'Unwrap';
     unwrapNavBtn.title = 'Unwrap temporary secret token';
     unwrapNavBtn.style.flex = '1';
     unwrapNavBtn.onclick = () => context.renderView('secretUnwrapper');
@@ -61,8 +61,8 @@ const secretManager = {
     createBtn.style.flex = '1';
     createBtn.onclick = () => context.renderView('secretEditor', { isEditMode: false });
 
-    actionGroup.appendChild(unwrapNavBtn);
     actionGroup.appendChild(createBtn);
+    actionGroup.appendChild(unwrapNavBtn);
 
     // Dynamic Secrets Index List
     const secretsList = document.createElement('div');
