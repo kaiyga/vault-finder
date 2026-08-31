@@ -31,6 +31,28 @@
 
 Use scoped tokens with minimal required policies (e.g. read/write only for your personal KV path) and sensible TTLs. If you paste a root token into a browser extension, no amount of client-side encryption is going to save your infrastructure anyway. 
 
+**Minimal Required Policy Example (HCL)**
+
+Below is the minimal required Vault policy for a scoped user. 
+
+Replace `sec` with your engine path:
+```hcl
+# kv-name + data =  C/R/U/D
+path "sec/data/path-to-folder/*" {
+  capabilities = ["create", "read", "update", "delete"]
+}
+# kv-name + metadata = R/L/D
+path "sec/metadata/path-to-folder/*" {
+  capabilities = ["list", "read", "delete"]
+}
+# Create Wrapping
+path "sys/wrapping/wrap" {
+  capabilities = ["update"]
+}
+```
+
+'data' and 'metadata' is required prefixes read more in [Hashicorp Vault Docs](https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2/setup#step-2-create-an-acl-policy-file)
+
 ---
 
 ## Custom Styling & CSS API
