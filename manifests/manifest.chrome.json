@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vault Finder",
-  "version": "1.0",
+  "version": "0.1.1",
   "description": "Search and manage secrets from HashiCorp Vault",
   "permissions": [
     "storage",
